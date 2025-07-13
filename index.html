@@ -116,6 +116,84 @@
             font-size: 14px;
             color: #1565c0;
         }
+        .comparison-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        .control-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            font-weight: 500;
+            color: #333;
+            min-width: 80px;
+        }
+        .product-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            flex: 1;
+        }
+        .product-tag {
+            background: #36A2EB;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .product-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .product-input {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .days-input {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 14px;
+            width: 80px;
+        }
+        .compare-btn {
+            background: #36A2EB;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .compare-btn:hover {
+            background: #2691D9;
+        }
+        .compare-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -155,6 +233,28 @@
                 </div>
                 <canvas id="trendChart"></canvas>
             </div>
+
+            <div class="chart-container full-width">
+                <div class="chart-title">🔍 产品销量对比分析</div>
+                <div class="comparison-controls">
+                    <div class="control-group">
+                        <label>选择产品:</label>
+                        <div class="product-selector" id="productSelector">
+                            <!-- 已选择的产品标签会在这里显示 -->
+                        </div>
+                        <select id="productSelect" class="product-input">
+                            <option value="">请选择产品...</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>时间范围:</label>
+                        <input type="number" id="daysInput" class="days-input" value="30" min="1" max="365" />
+                        <span>天</span>
+                        <button id="compareBtn" class="compare-btn">开始对比</button>
+                    </div>
+                </div>
+                <canvas id="comparisonChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -164,7 +264,11 @@
         const API_BASE_URL = 'https://midataget-bedvethqawckehaa.eastasia-01.azurewebsites.net/api';
         
         // 图表实例
-        let salesChart, trendChart;
+        let salesChart, trendChart, comparisonChart;
+        
+        // 产品对比相关变量
+        let selectedProducts = [];
+        let availableProducts = [];
         
         // 状态管理
         function updateStatus(message, isError = false) {
@@ -266,6 +370,175 @@
             });
         }
 
+        // 产品对比相关函数
+        function initProductComparison() {
+            const productSelect = document.getElementById('productSelect');
+            const compareBtn = document.getElementById('compareBtn');
+            
+            // 产品选择事件
+            productSelect.addEventListener('change', function() {
+                const selectedProduct = this.value;
+                if (selectedProduct && !selectedProducts.includes(selectedProduct)) {
+                    if (selectedProducts.length < 5) { // 限制最多5个产品
+                        selectedProducts.push(selectedProduct);
+                        updateProductSelector();
+                        this.value = ''; // 重置选择框
+                    } else {
+                        alert('最多只能选择5个产品进行对比');
+                        this.value = '';
+                    }
+                }
+            });
+            
+            // 对比按钮事件
+            compareBtn.addEventListener('click', function() {
+                if (selectedProducts.length < 2) {
+                    alert('请至少选择2个产品进行对比');
+                    return;
+                }
+                updateComparisonChart();
+            });
+        }
+
+        function populateProductSelect(products) {
+            const productSelect = document.getElementById('productSelect');
+            availableProducts = products.map(p => p.ProductName).filter(name => name);
+            
+            // 清空并重新填充选项
+            productSelect.innerHTML = '<option value="">请选择产品...</option>';
+            availableProducts.forEach(productName => {
+                const option = document.createElement('option');
+                option.value = productName;
+                option.textContent = productName;
+                productSelect.appendChild(option);
+            });
+        }
+
+        function updateProductSelector() {
+            const productSelector = document.getElementById('productSelector');
+            productSelector.innerHTML = '';
+            
+            selectedProducts.forEach(productName => {
+                const tag = document.createElement('div');
+                tag.className = 'product-tag';
+                tag.innerHTML = `
+                    ${productName}
+                    <span class="remove" onclick="removeProduct('${productName}')">×</span>
+                `;
+                productSelector.appendChild(tag);
+            });
+            
+            // 更新对比按钮状态
+            const compareBtn = document.getElementById('compareBtn');
+            compareBtn.disabled = selectedProducts.length < 2;
+        }
+
+        function removeProduct(productName) {
+            selectedProducts = selectedProducts.filter(name => name !== productName);
+            updateProductSelector();
+        }
+
+        // 初始化对比图表
+        function initComparisonChart() {
+            const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(comparisonCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: '日期'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'DailySales'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新对比图表
+        async function updateComparisonChart() {
+            try {
+                const days = document.getElementById('daysInput').value || 30;
+                const productsParam = selectedProducts.join(',');
+                
+                updateStatus('正在获取对比数据...', false);
+                
+                const data = await fetchData(`product-comparison?products=${encodeURIComponent(productsParam)}&days=${days}`);
+                
+                if (data && !data.error) {
+                    // 生成颜色数组
+                    const colors = [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                    ];
+                    
+                    // 获取所有日期（取并集）
+                    const allDates = new Set();
+                    Object.values(data.products).forEach(productData => {
+                        productData.forEach(item => allDates.add(item.date));
+                    });
+                    const sortedDates = Array.from(allDates).sort();
+                    
+                    // 构建数据集
+                    const datasets = [];
+                    let colorIndex = 0;
+                    
+                    Object.entries(data.products).forEach(([productName, productData]) => {
+                        // 为每个日期填充数据，缺失的日期用0填充
+                        const salesData = sortedDates.map(date => {
+                            const found = productData.find(item => item.date === date);
+                            return found ? found.sales : 0;
+                        });
+                        
+                        datasets.push({
+                            label: productName,
+                            data: salesData,
+                            borderColor: colors[colorIndex % colors.length],
+                            backgroundColor: colors[colorIndex % colors.length] + '20',
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointHoverRadius: 5
+                        });
+                        colorIndex++;
+                    });
+                    
+                    // 更新图表
+                    comparisonChart.data.labels = sortedDates;
+                    comparisonChart.data.datasets = datasets;
+                    comparisonChart.update();
+                    
+                    updateStatus(`✅ 对比数据获取成功！已对比 ${data.productCount} 个产品，时间范围 ${data.timePeriod}`, false);
+                } else {
+                    throw new Error(data.error || '对比数据获取失败');
+                }
+                
+            } catch (error) {
+                console.error('Error updating comparison chart:', error);
+                updateStatus(`❌ 对比数据获取失败: ${error.message}`, true);
+            }
+        }
+
         // 更新产品列表
         function updateProductsList(products) {
             const productsList = document.getElementById('productsList');
@@ -321,6 +594,7 @@
                     // 更新产品列表
                     if (products && !products.error) {
                         updateProductsList(products);
+                        populateProductSelect(products); // 填充产品选择下拉框
                     }
 
                     // 显示基础统计信息
@@ -384,10 +658,12 @@
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
             initCharts();
+            initComparisonChart();
+            initProductComparison();
             updateCharts();
-            
-            // 每60秒自动刷新数据（降低频率减少API调用）
-            setInterval(updateCharts, 60000);
+
+            // 每600秒自动刷新数据（降低频率减少API调用）
+            setInterval(updateCharts, 600000);
         });
     </script>
 </body>
