@@ -151,7 +151,7 @@
             <div class="chart-container full-width">
                 <div class="chart-title">📈 每日销量增长趋势图</div>
                 <div class="trend-explanation">
-                    📝 <strong>数据说明：</strong>显示最近7天每日销量增长趋势，数值为当天累计销量减去前一天累计销量的差值
+                    📝 <strong>数据说明：</strong>显示最近30天每日销量增长趋势，数值为当天累计销量减去前一天累计销量的差值
                 </div>
                 <canvas id="trendChart"></canvas>
             </div>
@@ -236,14 +236,30 @@
                         borderColor: '#36A2EB',
                         backgroundColor: 'rgba(54, 162, 235, 0.1)',
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointRadius: 2,
+                        pointHoverRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     scales: {
+                        x: {
+                            display: true,
+                            ticks: {
+                                maxTicksLimit: 15,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
                         y: {
                             beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
                         }
                     }
                 }
@@ -334,15 +350,18 @@
             salesChart.data.datasets[0].data = [125, 89, 156, 78, 92, 134];
             salesChart.update();
 
-            // 示例趋势数据
-            const last7Days = [];
-            for (let i = 6; i >= 0; i--) {
+            // 示例趋势数据 - 30天
+            const last30Days = [];
+            const sampleTrendData = [];
+            for (let i = 29; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
+                last30Days.push(date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
+                // 生成随机的销量增长数据 (20-100之间)
+                sampleTrendData.push(Math.floor(Math.random() * 80) + 20);
             }
-            trendChart.data.labels = last7Days;
-            trendChart.data.datasets[0].data = [45, 52, 48, 61, 55, 67, 73];
+            trendChart.data.labels = last30Days;
+            trendChart.data.datasets[0].data = sampleTrendData;
             trendChart.update();
 
             // 示例产品列表
