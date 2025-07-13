@@ -27,9 +27,20 @@
         }
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-top: 30px;
+        }
+        .chart-container.full-width {
+            grid-column: span 2;
+        }
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-container.full-width {
+                grid-column: span 1;
+            }
         }
         .chart-container {
             background: #fafafa;
@@ -71,6 +82,40 @@
         canvas {
             max-height: 400px;
         }
+        .product-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #36A2EB;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .product-name {
+            font-weight: 500;
+            color: #333;
+        }
+        .product-id {
+            font-size: 12px;
+            color: #666;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 12px;
+        }
+        .trend-explanation {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #1565c0;
+        }
     </style>
 </head>
 <body>
@@ -89,23 +134,26 @@
 
         <div class="charts-grid">
             <div class="chart-container">
-                <div class="chart-title">📊 产品销量排行榜</div>
+                <div class="chart-title">📊 当日销量增长排行榜</div>
+                <div class="trend-explanation">
+                    📝 <strong>数据说明：</strong>显示当日销量增长排行，计算方式为最新一天累计销量减去前一天累计销量
+                </div>
                 <canvas id="salesChart"></canvas>
             </div>
 
             <div class="chart-container">
-                <div class="chart-title">📈 销售趋势图</div>
+                <div class="chart-title">🏆 最新产品列表</div>
+                <div id="productsList" class="product-list">
+                    <div style="text-align: center; color: #666; padding: 20px;">加载中...</div>
+                </div>
+            </div>
+
+            <div class="chart-container full-width">
+                <div class="chart-title">📈 每日销量增长趋势图</div>
+                <div class="trend-explanation">
+                    📝 <strong>数据说明：</strong>显示最近7天每日销量增长趋势，数值为当天累计销量减去前一天累计销量的差值
+                </div>
                 <canvas id="trendChart"></canvas>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-title">🏆 最新产品</div>
-                <canvas id="productsChart"></canvas>
-            </div>
-
-            <div class="chart-container">
-                <div class="chart-title">💰 销售额分布</div>
-                <canvas id="revenueChart"></canvas>
             </div>
         </div>
     </div>
@@ -116,7 +164,7 @@
         const API_BASE_URL = 'https://midataget-bedvethqawckehaa.eastasia-01.azurewebsites.net/api';
         
         // 图表实例
-        let salesChart, trendChart, productsChart, revenueChart;
+        let salesChart, trendChart;
         
         // 状态管理
         function updateStatus(message, isError = false) {
@@ -152,7 +200,7 @@
                 data: {
                     labels: [],
                     datasets: [{
-                        label: '销售数量',
+                        label: '当日销量增长',
                         data: [],
                         backgroundColor: [
                             '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
@@ -183,7 +231,7 @@
                 data: {
                     labels: [],
                     datasets: [{
-                        label: '每日销量',
+                        label: '每日销量增长',
                         data: [],
                         borderColor: '#36A2EB',
                         backgroundColor: 'rgba(54, 162, 235, 0.1)',
@@ -200,132 +248,72 @@
                     }
                 }
             });
-
-            // 最新产品
-            const productsCtx = document.getElementById('productsChart').getContext('2d');
-            productsChart = new Chart(productsCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: [
-                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                            '#9966FF', '#FF9F40'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-
-            // 销售额分布
-            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-            revenueChart = new Chart(revenueCtx, {
-                type: 'pie',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        data: [],
-                        backgroundColor: [
-                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                            '#9966FF', '#FF9F40'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
         }
 
-        // 更新图表数据
+        // 更新产品列表
+        function updateProductsList(products) {
+            const productsList = document.getElementById('productsList');
+            
+            if (!products || products.length === 0) {
+                productsList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">暂无产品数据</div>';
+                return;
+            }
+            
+            let html = '';
+            products.slice(0, 10).forEach(product => {
+                html += `
+                    <div class="product-item">
+                        <div>
+                            <div class="product-name">${product.ProductName || '未知产品'}</div>
+                        </div>
+                        <div class="product-id">ID: ${product.ProductID}</div>
+                    </div>
+                `;
+            });
+            
+            productsList.innerHTML = html;
+        }
+
+        // 更新图表数据 - 使用优化的统计API
         async function updateCharts() {
             try {
                 updateStatus('正在获取数据...', false);
 
-                // 获取产品数据
+                // 使用新的统计API端点
+                const stats = await fetchData('stats');
+                console.log('Dashboard Stats:', stats);
+                
+                // 同时获取产品列表数据
                 const products = await fetchData('products');
                 console.log('Products:', products);
 
-                // 获取销售数据
-                const sales = await fetchData('sales');
-                console.log('Sales:', sales);
+                if (stats && !stats.error) {
+                    // 更新销量排行榜
+                    if (stats.salesRanking && stats.salesRanking.length > 0) {
+                        salesChart.data.labels = stats.salesRanking.map(item => item.name);
+                        salesChart.data.datasets[0].data = stats.salesRanking.map(item => item.sales);
+                        salesChart.update();
+                    }
 
-                // 处理销量排行榜数据
-                if (sales && sales.length > 0) {
-                    const salesByProduct = {};
-                    sales.forEach(sale => {
-                        const productName = sale.ProductName || `产品 ${sale.ProductID}`;
-                        salesByProduct[productName] = (salesByProduct[productName] || 0) + (sale.DailySales || 0);
-                    });
+                    // 更新销售趋势图
+                    if (stats.dailyTrend && stats.dailyTrend.length > 0) {
+                        trendChart.data.labels = stats.dailyTrend.map(item => item.date);
+                        trendChart.data.datasets[0].data = stats.dailyTrend.map(item => item.sales);
+                        trendChart.update();
+                    }
 
-                    const sortedSales = Object.entries(salesByProduct)
-                        .sort(([,a], [,b]) => b - a)
-                        .slice(0, 8);
+                    // 更新产品列表
+                    if (products && !products.error) {
+                        updateProductsList(products);
+                    }
 
-                    salesChart.data.labels = sortedSales.map(([name]) => name);
-                    salesChart.data.datasets[0].data = sortedSales.map(([,value]) => value);
-                    salesChart.update();
+                    // 显示基础统计信息
+                    const basicStats = stats.basicStats || {};
+                    updateStatus(`✅ 数据获取成功！${basicStats.productCount || 0} 个产品，${basicStats.salesRecordCount || 0} 条销售记录，总销量 ${basicStats.totalSales || 0}`, false);
+                } else {
+                    throw new Error(stats.error || '数据格式错误');
                 }
 
-                // 处理销售趋势数据
-                if (sales && sales.length > 0) {
-                    const dailySales = {};
-                    sales.forEach(sale => {
-                        const date = sale.SaleDate ? new Date(sale.SaleDate).toLocaleDateString('zh-CN') : '未知日期';
-                        dailySales[date] = (dailySales[date] || 0) + (sale.DailySales || 0);
-                    });
-
-                    const sortedDates = Object.entries(dailySales)
-                        .sort(([a], [b]) => new Date(a) - new Date(b))
-                        .slice(-7); // 最近7天
-
-                    trendChart.data.labels = sortedDates.map(([date]) => date);
-                    trendChart.data.datasets[0].data = sortedDates.map(([,value]) => value);
-                    trendChart.update();
-                }
-
-                // 处理产品分布数据
-                if (products && products.length > 0) {
-                    const productNames = products.slice(0, 6).map(p => p.ProductName || `产品 ${p.ProductID}`);
-                    const productCounts = products.slice(0, 6).map(() => Math.floor(Math.random() * 100) + 1);
-
-                    productsChart.data.labels = productNames;
-                    productsChart.data.datasets[0].data = productCounts;
-                    productsChart.update();
-                }
-
-                // 处理销售额分布（模拟数据）
-                if (sales && sales.length > 0) {
-                    const revenueByProduct = {};
-                    sales.forEach(sale => {
-                        const productName = sale.ProductName || `产品 ${sale.ProductID}`;
-                        const revenue = (sale.DailySales || 0) * (sale.UnitPrice || 50); // 默认单价50
-                        revenueByProduct[productName] = (revenueByProduct[productName] || 0) + revenue;
-                    });
-
-                    const sortedRevenue = Object.entries(revenueByProduct)
-                        .sort(([,a], [,b]) => b - a)
-                        .slice(0, 6);
-
-                    revenueChart.data.labels = sortedRevenue.map(([name]) => name);
-                    revenueChart.data.datasets[0].data = sortedRevenue.map(([,value]) => value);
-                    revenueChart.update();
-                }
-
-                updateStatus(`✅ 数据获取成功！显示 ${products.length} 个产品，${sales.length} 条销售记录`, false);
                 updateLastUpdate();
 
             } catch (error) {
@@ -351,21 +339,24 @@
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                last7Days.push(date.toLocaleDateString('zh-CN'));
+                last7Days.push(date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
             }
             trendChart.data.labels = last7Days;
             trendChart.data.datasets[0].data = [45, 52, 48, 61, 55, 67, 73];
             trendChart.update();
 
-            // 示例产品分布
-            productsChart.data.labels = ['手机', '智能穿戴', '电视', '路由器', '耳机', '其他'];
-            productsChart.data.datasets[0].data = [35, 25, 15, 10, 10, 5];
-            productsChart.update();
-
-            // 示例销售额分布
-            revenueChart.data.labels = ['小米14', 'Redmi系列', '小米电视', '智能家居', '配件', '其他'];
-            revenueChart.data.datasets[0].data = [45000, 28000, 15000, 8000, 6000, 3000];
-            revenueChart.update();
+            // 示例产品列表
+            const sampleProducts = [
+                { ProductID: 10001, ProductName: '小米14 Pro' },
+                { ProductID: 10002, ProductName: '小米手环8 NFC版' },
+                { ProductID: 10003, ProductName: 'Redmi Note 13 Pro+' },
+                { ProductID: 10004, ProductName: '小米电视A55 2024款' },
+                { ProductID: 10005, ProductName: '小米路由器AX6000' },
+                { ProductID: 10006, ProductName: '小米Buds 4 Pro' },
+                { ProductID: 10007, ProductName: '小米平板6' },
+                { ProductID: 10008, ProductName: '小米智能音箱' }
+            ];
+            updateProductsList(sampleProducts);
 
             updateStatus('⚠️ 正在显示示例数据 - 请配置正确的 API 地址', true);
             updateLastUpdate();
@@ -376,8 +367,8 @@
             initCharts();
             updateCharts();
             
-            // 每30秒自动刷新数据
-            setInterval(updateCharts, 30000);
+            // 每60秒自动刷新数据（降低频率减少API调用）
+            setInterval(updateCharts, 60000);
         });
     </script>
 </body>
