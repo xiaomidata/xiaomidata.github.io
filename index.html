@@ -1,669 +1,464 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小米数据展示 - Mi Data Dashboard</title>
+    <title>MI Data Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
             background-color: #f5f5f5;
         }
+        
         .container {
             max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 10px;
             padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 {
+        
+        .header {
             text-align: center;
-            color: #333;
             margin-bottom: 30px;
-        }
-        .charts-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-top: 30px;
-        }
-        .chart-container.full-width {
-            grid-column: span 2;
-        }
-        @media (max-width: 768px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
-            .chart-container.full-width {
-                grid-column: span 1;
-            }
-        }
-        .chart-container {
-            background: #fafafa;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .chart-title {
-            font-size: 18px;
-            font-weight: bold;
             color: #333;
-            margin-bottom: 15px;
-            text-align: center;
         }
-        .api-status {
-            text-align: center;
-            margin: 20px 0;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .data-info {
-            background: #e3f2fd;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-            color: #1565c0;
-        }
-        canvas {
-            max-height: 400px;
-        }
-        .product-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .product-item {
+        
+        .controls {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            background: white;
-            border-radius: 6px;
-            border-left: 4px solid #36A2EB;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: end;
         }
-        .product-name {
-            font-weight: 500;
-            color: #333;
-        }
-        .product-id {
-            font-size: 12px;
-            color: #666;
-            background: #f0f0f0;
-            padding: 2px 8px;
-            border-radius: 12px;
-        }
-        .trend-explanation {
-            background: #e8f4f8;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            color: #1565c0;
-        }
-        .comparison-controls {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #e0e0e0;
-        }
+        
         .control-group {
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 15px;
+            flex-direction: column;
+            gap: 5px;
         }
-        .control-group label {
-            font-weight: 500;
-            color: #333;
-            min-width: 80px;
+        
+        label {
+            font-weight: 600;
+            color: #555;
         }
-        .product-selector {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            flex: 1;
+        
+        select, input, button {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
         }
-        .product-tag {
-            background: #36A2EB;
+        
+        select[multiple] {
+            min-height: 120px;
+        }
+        
+        button {
+            background: #007bff;
             color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 500px;
+            margin-bottom: 20px;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status.empty {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .metrics-checkboxes {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .checkbox-item {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        .product-tag .remove {
-            cursor: pointer;
-            font-weight: bold;
-            background: rgba(255,255,255,0.3);
-            border-radius: 50%;
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-        }
-        .product-input {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px 12px;
-            font-size: 14px;
-            min-width: 200px;
-        }
-        .days-input {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px 12px;
-            font-size: 14px;
-            width: 80px;
-        }
-        .compare-btn {
-            background: #36A2EB;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 20px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .compare-btn:hover {
-            background: #2691D9;
-        }
-        .compare-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
+        
+        input[type="checkbox"] {
+            width: auto;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 小米数据可视化大屏</h1>
+        <div class="header">
+            <h1>🚀 MI Data Dashboard</h1>
+            <p>Compare Xiaomi product sales and comments data</p>
+        </div>
         
-        <div id="apiStatus" class="api-status">
-            <div>正在连接 Azure Function API...</div>
-        </div>
-
-        <div class="data-info">
-            <p><strong>数据来源：</strong>Azure SQL 数据库</p>
-            <p><strong>API 端点：</strong>Azure Functions</p>
-            <p><strong>最后更新：</strong><span id="lastUpdate">-</span></p>
-        </div>
-
-        <div class="charts-grid">
-            <div class="chart-container">
-                <div class="chart-title">📊 当日销量增长排行榜</div>
-                <div class="trend-explanation">
-                    📝 <strong>数据说明：</strong>显示当日销量增长排行，计算方式为最新一天累计销量减去前一天累计销量
-                </div>
-                <canvas id="salesChart"></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="productSearch">Search Products:</label>
+                <input type="text" id="productSearch" placeholder="Type to search products..." 
+                       oninput="searchProducts()" style="margin-bottom: 5px;">
+                <select id="productSelect" multiple size="6">
+                    <option value="">Loading products...</option>
+                </select>
             </div>
-
-            <div class="chart-container">
-                <div class="chart-title">🏆 最新产品列表</div>
-                <div id="productsList" class="product-list">
-                    <div style="text-align: center; color: #666; padding: 20px;">加载中...</div>
+            
+            <div class="control-group">
+                <label for="daysInput">Days to show:</label>
+                <input type="number" id="daysInput" value="30" min="1" max="365">
+            </div>
+            
+            <div class="control-group">
+                <label>Comparison Mode:</label>
+                <div class="checkbox-item">
+                    <input type="checkbox" id="alignFirstDate">
+                    <label for="alignFirstDate">Align from first data point</label>
                 </div>
             </div>
-
-            <div class="chart-container full-width">
-                <div class="chart-title">📈 每日销量增长趋势图</div>
-                <div class="trend-explanation">
-                    📝 <strong>数据说明：</strong>显示最近30天每日销量增长趋势，数值为当天累计销量减去前一天累计销量的差值
-                </div>
-                <canvas id="trendChart"></canvas>
-            </div>
-
-            <div class="chart-container full-width">
-                <div class="chart-title">🔍 产品销量对比分析</div>
-                <div class="comparison-controls">
-                    <div class="control-group">
-                        <label>选择产品:</label>
-                        <div class="product-selector" id="productSelector">
-                            <!-- 已选择的产品标签会在这里显示 -->
-                        </div>
-                        <select id="productSelect" class="product-input">
-                            <option value="">请选择产品...</option>
-                        </select>
+            
+            <div class="control-group">
+                <label>Metrics to compare:</label>
+                <div class="metrics-checkboxes" id="metricsCheckboxes">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="totalSales" value="TotalSales" checked>
+                        <label for="totalSales">Total Sales</label>
                     </div>
-                    <div class="control-group">
-                        <label>时间范围:</label>
-                        <input type="number" id="daysInput" class="days-input" value="30" min="1" max="365" />
-                        <span>天</span>
-                        <button id="compareBtn" class="compare-btn">开始对比</button>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="dailySales" value="DailySales">
+                        <label for="dailySales">Daily Sales</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="totalComments" value="TotalComments" checked>
+                        <label for="totalComments">Comments</label>
                     </div>
                 </div>
-                <canvas id="comparisonChart"></canvas>
             </div>
+            
+            <div class="control-group">
+                <button id="compareBtn" onclick="loadComparison()">📊 Compare</button>
+                <button id="refreshBtn" onclick="loadProducts()">🔄 Refresh</button>
+            </div>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div class="chart-container">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+        
+        <div class="info-box">
+            <h3>📋 How to use:</h3>
+            <ul>
+                <li><strong>Search Products:</strong> Type in the search box to find products by name</li>
+                <li><strong>Select Products:</strong> Hold Ctrl/Cmd to select multiple products from the list</li>
+                <li><strong>Choose Time Mode:</strong> 
+                    <ul>
+                        <li>Default: Compare data from the last N days</li>
+                        <li>Align Mode: Compare from each product's first data point (Day 1, Day 2, etc.)</li>
+                    </ul>
+                </li>
+                <li><strong>Choose Metrics:</strong> Check the data types you want to compare</li>
+                <li><strong>Compare:</strong> Click the Compare button to generate the chart</li>
+            </ul>
+            <p><strong>💡 Tip:</strong> Use align mode to compare product performance from their launch dates!</p>
         </div>
     </div>
 
     <script>
-        // 配置你的 Azure Function API 基础 URL
-        // 请将此 URL 替换为你的实际 Azure Function 部署地址
-        const API_BASE_URL = 'https://midataget-bedvethqawckehaa.eastasia-01.azurewebsites.net/api';
+        // Configuration
+        const API_BASE = 'http://localhost:8000'; // Change this to your API server
+        let chart = null;
         
-        // 图表实例
-        let salesChart, trendChart, comparisonChart;
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+        });
         
-        // 产品对比相关变量
-        let selectedProducts = [];
-        let availableProducts = [];
-        
-        // 状态管理
-        function updateStatus(message, isError = false) {
-            const statusDiv = document.getElementById('apiStatus');
-            statusDiv.innerHTML = `<div>${message}</div>`;
-            statusDiv.className = `api-status ${isError ? 'status-error' : 'status-success'}`;
-        }
-
-        function updateLastUpdate() {
-            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN');
-        }
-
-        // API 调用函数
-        async function fetchData(endpoint) {
+        // Load products for dropdown (initial load)
+        async function loadProducts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/${endpoint}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error(`Error fetching ${endpoint}:`, error);
-                throw error;
-            }
-        }
-
-        // 初始化图表
-        function initCharts() {
-            // 销量排行榜
-            const salesCtx = document.getElementById('salesChart').getContext('2d');
-            salesChart = new Chart(salesCtx, {
-                type: 'bar',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: '当日销量增长',
-                        data: [],
-                        backgroundColor: [
-                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                        ],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true
-                        }
-                    }
-                }
-            });
-
-            // 销售趋势图
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            trendChart = new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: '每日销量增长',
-                        data: [],
-                        borderColor: '#36A2EB',
-                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 2,
-                        pointHoverRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        x: {
-                            display: true,
-                            ticks: {
-                                maxTicksLimit: 15,
-                                font: {
-                                    size: 10
-                                }
-                            }
-                        },
-                        y: {
-                            beginAtZero: true
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true
-                        }
-                    }
-                }
-            });
-        }
-
-        // 产品对比相关函数
-        function initProductComparison() {
-            const productSelect = document.getElementById('productSelect');
-            const compareBtn = document.getElementById('compareBtn');
-            
-            // 产品选择事件
-            productSelect.addEventListener('change', function() {
-                const selectedProduct = this.value;
-                if (selectedProduct && !selectedProducts.includes(selectedProduct)) {
-                    if (selectedProducts.length < 5) { // 限制最多5个产品
-                        selectedProducts.push(selectedProduct);
-                        updateProductSelector();
-                        this.value = ''; // 重置选择框
-                    } else {
-                        alert('最多只能选择5个产品进行对比');
-                        this.value = '';
-                    }
-                }
-            });
-            
-            // 对比按钮事件
-            compareBtn.addEventListener('click', function() {
-                if (selectedProducts.length < 2) {
-                    alert('请至少选择2个产品进行对比');
-                    return;
-                }
-                updateComparisonChart();
-            });
-        }
-
-        function populateProductSelect(products) {
-            const productSelect = document.getElementById('productSelect');
-            availableProducts = products.map(p => p.ProductName).filter(name => name);
-            
-            // 清空并重新填充选项
-            productSelect.innerHTML = '<option value="">请选择产品...</option>';
-            availableProducts.forEach(productName => {
-                const option = document.createElement('option');
-                option.value = productName;
-                option.textContent = productName;
-                productSelect.appendChild(option);
-            });
-        }
-
-        function updateProductSelector() {
-            const productSelector = document.getElementById('productSelector');
-            productSelector.innerHTML = '';
-            
-            selectedProducts.forEach(productName => {
-                const tag = document.createElement('div');
-                tag.className = 'product-tag';
-                tag.innerHTML = `
-                    ${productName}
-                    <span class="remove" onclick="removeProduct('${productName}')">×</span>
-                `;
-                productSelector.appendChild(tag);
-            });
-            
-            // 更新对比按钮状态
-            const compareBtn = document.getElementById('compareBtn');
-            compareBtn.disabled = selectedProducts.length < 2;
-        }
-
-        function removeProduct(productName) {
-            selectedProducts = selectedProducts.filter(name => name !== productName);
-            updateProductSelector();
-        }
-
-        // 初始化对比图表
-        function initComparisonChart() {
-            const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
-            comparisonChart = new Chart(comparisonCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: '日期'
-                            }
-                        },
-                        y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'DailySales'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 更新对比图表
-        async function updateComparisonChart() {
-            try {
-                const days = document.getElementById('daysInput').value || 30;
-                const productsParam = selectedProducts.join(',');
+                showStatus('Loading products...', 'loading');
                 
-                updateStatus('正在获取对比数据...', false);
+                const response = await fetch(`${API_BASE}/products/options`);
+                const data = await response.json();
                 
-                const data = await fetchData(`product-comparison?products=${encodeURIComponent(productsParam)}&days=${days}`);
+                const select = document.getElementById('productSelect');
+                select.innerHTML = '';
                 
-                if (data && !data.error) {
-                    // 生成颜色数组
-                    const colors = [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ];
-                    
-                    // 获取所有日期（取并集）
-                    const allDates = new Set();
-                    Object.values(data.products).forEach(productData => {
-                        productData.forEach(item => allDates.add(item.date));
+                if (data.status === 'success' && data.products.length > 0) {
+                    data.products.forEach(product => {
+                        const optionElement = document.createElement('option');
+                        optionElement.value = product.name;
+                        optionElement.textContent = `${product.name} (${product.records} records, ${product.days_span} days)`;
+                        select.appendChild(optionElement);
                     });
-                    const sortedDates = Array.from(allDates).sort();
-                    
-                    // 构建数据集
-                    const datasets = [];
-                    let colorIndex = 0;
-                    
-                    Object.entries(data.products).forEach(([productName, productData]) => {
-                        // 为每个日期填充数据，缺失的日期用0填充
-                        const salesData = sortedDates.map(date => {
-                            const found = productData.find(item => item.date === date);
-                            return found ? found.sales : 0;
-                        });
-                        
-                        datasets.push({
-                            label: productName,
-                            data: salesData,
-                            borderColor: colors[colorIndex % colors.length],
-                            backgroundColor: colors[colorIndex % colors.length] + '20',
-                            fill: false,
-                            tension: 0.4,
-                            pointRadius: 3,
-                            pointHoverRadius: 5
-                        });
-                        colorIndex++;
-                    });
-                    
-                    // 更新图表
-                    comparisonChart.data.labels = sortedDates;
-                    comparisonChart.data.datasets = datasets;
-                    comparisonChart.update();
-                    
-                    updateStatus(`✅ 对比数据获取成功！已对比 ${data.productCount} 个产品，时间范围 ${data.timePeriod}`, false);
+                    hideStatus();
                 } else {
-                    throw new Error(data.error || '对比数据获取失败');
+                    select.innerHTML = '<option value="">No products found</option>';
+                    showStatus('No products available', 'error');
                 }
                 
             } catch (error) {
-                console.error('Error updating comparison chart:', error);
-                updateStatus(`❌ 对比数据获取失败: ${error.message}`, true);
+                console.error('Error loading products:', error);
+                showStatus('Failed to load products', 'error');
+                document.getElementById('productSelect').innerHTML = '<option value="">Error loading products</option>';
             }
         }
-
-        // 更新产品列表
-        function updateProductsList(products) {
-            const productsList = document.getElementById('productsList');
+        
+        // Search products
+        let searchTimeout;
+        async function searchProducts() {
+            const query = document.getElementById('productSearch').value.trim();
             
-            if (!products || products.length === 0) {
-                productsList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">暂无产品数据</div>';
+            // 防抖：延迟500ms执行搜索
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                try {
+                    const url = query ? `${API_BASE}/products/search?q=${encodeURIComponent(query)}` : `${API_BASE}/products/options`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    const select = document.getElementById('productSelect');
+                    select.innerHTML = '';
+                    
+                    if (data.status === 'success') {
+                        const products = data.products || data.options || [];
+                        if (products.length > 0) {
+                            products.forEach(product => {
+                                const optionElement = document.createElement('option');
+                                optionElement.value = product.name;
+                                const recordInfo = product.records ? `${product.records} records` : '';
+                                const daysInfo = product.days_span ? `${product.days_span} days` : '';
+                                const infoText = [recordInfo, daysInfo].filter(Boolean).join(', ');
+                                optionElement.textContent = `${product.name}${infoText ? ` (${infoText})` : ''}`;
+                                select.appendChild(optionElement);
+                            });
+                        } else {
+                            select.innerHTML = '<option value="">No products found</option>';
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error('Error searching products:', error);
+                    document.getElementById('productSelect').innerHTML = '<option value="">Search error</option>';
+                }
+            }, 500);
+        }
+        
+        // Load comparison data and create chart
+        async function loadComparison() {
+            const selectedProducts = Array.from(document.getElementById('productSelect').selectedOptions)
+                .map(option => option.value);
+            
+            if (selectedProducts.length === 0) {
+                showStatus('Please select at least one product', 'error');
                 return;
             }
             
-            let html = '';
-            products.slice(0, 10).forEach(product => {
-                html += `
-                    <div class="product-item">
-                        <div>
-                            <div class="product-name">${product.ProductName || '未知产品'}</div>
-                        </div>
-                        <div class="product-id">ID: ${product.ProductID}</div>
-                    </div>
-                `;
-            });
+            const days = parseInt(document.getElementById('daysInput').value) || 30;
+            const alignFirstDate = document.getElementById('alignFirstDate').checked;
             
-            productsList.innerHTML = html;
-        }
-
-        // 更新图表数据 - 使用优化的统计API
-        async function updateCharts() {
+            const selectedMetrics = Array.from(document.querySelectorAll('#metricsCheckboxes input:checked'))
+                .map(checkbox => checkbox.value);
+            
+            if (selectedMetrics.length === 0) {
+                showStatus('Please select at least one metric', 'error');
+                return;
+            }
+            
             try {
-                updateStatus('正在获取数据...', false);
-
-                // 使用新的统计API端点
-                const stats = await fetchData('stats');
-                console.log('Dashboard Stats:', stats);
+                showStatus('Loading comparison data...', 'loading');
+                document.getElementById('compareBtn').disabled = true;
                 
-                // 同时获取产品列表数据
-                const products = await fetchData('products');
-                console.log('Products:', products);
-
-                if (stats && !stats.error) {
-                    // 更新销量排行榜
-                    if (stats.salesRanking && stats.salesRanking.length > 0) {
-                        salesChart.data.labels = stats.salesRanking.map(item => item.name);
-                        salesChart.data.datasets[0].data = stats.salesRanking.map(item => item.sales);
-                        salesChart.update();
-                    }
-
-                    // 更新销售趋势图
-                    if (stats.dailyTrend && stats.dailyTrend.length > 0) {
-                        trendChart.data.labels = stats.dailyTrend.map(item => item.date);
-                        trendChart.data.datasets[0].data = stats.dailyTrend.map(item => item.sales);
-                        trendChart.update();
-                    }
-
-                    // 更新产品列表
-                    if (products && !products.error) {
-                        updateProductsList(products);
-                        populateProductSelect(products); // 填充产品选择下拉框
-                    }
-
-                    // 显示基础统计信息
-                    const basicStats = stats.basicStats || {};
-                    updateStatus(`✅ 数据获取成功！${basicStats.productCount || 0} 个产品，${basicStats.salesRecordCount || 0} 条销售记录，总销量 ${basicStats.totalSales || 0}`, false);
+                const response = await fetch(`${API_BASE}/compare`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        product_names: selectedProducts,
+                        days: days,
+                        metrics: selectedMetrics,
+                        align_first_date: alignFirstDate
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    createChart(data.chart_data, alignFirstDate);
+                    hideStatus();
                 } else {
-                    throw new Error(stats.error || '数据格式错误');
+                    showStatus(data.detail || 'Failed to load comparison data', 'error');
                 }
-
-                updateLastUpdate();
-
-            } catch (error) {
-                console.error('Error updating charts:', error);
-                updateStatus(`❌ 数据获取失败: ${error.message}`, true);
                 
-                // 显示示例数据
-                loadSampleData();
+            } catch (error) {
+                console.error('Error loading comparison:', error);
+                showStatus('Failed to load comparison data', 'error');
+            } finally {
+                document.getElementById('compareBtn').disabled = false;
             }
         }
-
-        // 加载示例数据（当 API 不可用时）
-        function loadSampleData() {
-            console.log('Loading sample data...');
+        
+        // Create Chart.js chart
+        function createChart(chartData, alignFirstDate = false) {
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
             
-            // 示例销量数据
-            salesChart.data.labels = ['小米14', '小米手环8', 'Redmi Note 13', '小米电视A55', '小米路由器', '小米耳机'];
-            salesChart.data.datasets[0].data = [125, 89, 156, 78, 92, 134];
-            salesChart.update();
-
-            // 示例趋势数据 - 30天
-            const last30Days = [];
-            const sampleTrendData = [];
-            for (let i = 29; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                last30Days.push(date.toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }));
-                // 生成随机的销量增长数据 (20-100之间)
-                sampleTrendData.push(Math.floor(Math.random() * 80) + 20);
+            // Destroy existing chart
+            if (chart) {
+                chart.destroy();
             }
-            trendChart.data.labels = last30Days;
-            trendChart.data.datasets[0].data = sampleTrendData;
-            trendChart.update();
-
-            // 示例产品列表
-            const sampleProducts = [
-                { ProductID: 10001, ProductName: '小米14 Pro' },
-                { ProductID: 10002, ProductName: '小米手环8 NFC版' },
-                { ProductID: 10003, ProductName: 'Redmi Note 13 Pro+' },
-                { ProductID: 10004, ProductName: '小米电视A55 2024款' },
-                { ProductID: 10005, ProductName: '小米路由器AX6000' },
-                { ProductID: 10006, ProductName: '小米Buds 4 Pro' },
-                { ProductID: 10007, ProductName: '小米平板6' },
-                { ProductID: 10008, ProductName: '小米智能音箱' }
-            ];
-            updateProductsList(sampleProducts);
-
-            updateStatus('⚠️ 正在显示示例数据 - 请配置正确的 API 地址', true);
-            updateLastUpdate();
+            
+            if (chartData.datasets.length === 0) {
+                showStatus('No data available for the selected products and time range', 'empty');
+                return;
+            }
+            
+            // 动态设置图表标题
+            let chartTitle = 'Product Comparison Dashboard';
+            if (alignFirstDate) {
+                chartTitle += ' (Aligned from First Data Point)';
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: chartTitle,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                title: function(context) {
+                                    if (alignFirstDate) {
+                                        return context[0].label; // "Day X"
+                                    } else {
+                                        return context[0].label; // Date
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: alignFirstDate ? 'Days from First Record' : 'Date'
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            },
+                            beginAtZero: true,
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    elements: {
+                        point: {
+                            radius: 3,
+                            hoverRadius: 6
+                        },
+                        line: {
+                            tension: 0.1
+                        }
+                    }
+                }
+            });
         }
-
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            initCharts();
-            initComparisonChart();
-            initProductComparison();
-            updateCharts();
-
-            // 每600秒自动刷新数据（降低频率减少API调用）
-            setInterval(updateCharts, 600000);
+        
+        // Utility functions
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                loadComparison();
+            }
         });
     </script>
 </body>
