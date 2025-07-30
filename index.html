@@ -410,6 +410,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadDailyRankingChart();
             loadTotalRankingChart();
+            loadDefaultComparison();
             setupEventListeners();
         });
 
@@ -749,6 +750,51 @@
                     }
                 }
             });
+        }
+
+        // Load default comparison on page load
+        async function loadDefaultComparison() {
+            try {
+                const response = await fetch(`${API_BASE}/compare`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        product_names: ['Xiaomi 15', 'Xiaomi 14'],
+                        days: 150,
+                        metrics: ['DailySales'],
+                        align_first_date: true
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    renderComparisonChart(data.chart_data);
+                    
+                    // 预填充候选槽位显示默认选择的产品
+                    candidates = [
+                        { name: 'Xiaomi 15' },
+                        { name: 'Xiaomi 14' }
+                    ];
+                    updateCandidateSlots();
+                    
+                    // 设置默认控制项
+                    document.getElementById('daysInput').value = 30;
+                    document.getElementById('alignFirstDate').checked = true;
+                    
+                    // 设置默认指标选择
+                    document.querySelectorAll('.metric-chip').forEach(chip => {
+                        chip.classList.remove('active');
+                        if (chip.dataset.metric === 'DailySales') {
+                            chip.classList.add('active');
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Default comparison failed to load');
+            }
         }
 
         function showStatus(message, type) {
