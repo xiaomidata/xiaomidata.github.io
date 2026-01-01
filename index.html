@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -54,7 +55,7 @@
             background: white;
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
         }
 
@@ -78,7 +79,7 @@
             background: white;
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
 
@@ -108,7 +109,7 @@
             right: 0;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             max-height: 200px;
             overflow-y: auto;
             z-index: 100;
@@ -295,18 +296,18 @@
             background: white;
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
         @media (max-width: 768px) {
             .dashboard {
                 grid-template-columns: 1fr;
             }
-            
+
             .candidates {
                 grid-template-columns: repeat(2, 1fr);
             }
-            
+
             .controls {
                 flex-direction: column;
                 align-items: stretch;
@@ -314,6 +315,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- Header -->
@@ -336,7 +338,7 @@
 
             <!-- Total Sales Rankings -->
             <div class="card">
-                <div class="card-title">   
+                <div class="card-title">
                     👑 Top Total Sales
                 </div>
                 <div class="chart-container">
@@ -347,7 +349,7 @@
 
         <!-- Product Comparison -->
         <div class="card" style="margin-bottom: 30px;">
-            <div class="card-title">   
+            <div class="card-title">
                 📈 Product Comparison
             </div>
             <div class="chart-container">
@@ -358,9 +360,10 @@
         <!-- Search Section -->
         <div class="search-section">
             <div class="card-title">🔍 Product Selection</div>
-            
+
             <div class="search-container">
-                <input type="text" id="searchInput" class="search-input" placeholder="Search products..." autocomplete="off">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search products..."
+                    autocomplete="off">
                 <div id="searchResults" class="search-results"></div>
             </div>
 
@@ -377,7 +380,7 @@
                     <label>Days:</label>
                     <input type="number" id="daysInput" class="input-field" value="30" min="1" max="365">
                 </div>
-                
+
                 <div class="control-group">
                     <label>Metrics:</label>
                     <div class="metrics-toggle">
@@ -385,13 +388,13 @@
                         <div class="metric-chip" data-metric="DailySales">Daily</div>
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>
                         <input type="checkbox" id="alignFirstDate"> Align start
                     </label>
                 </div>
-                
+
                 <button class="btn btn-primary" onclick="loadComparison()">Compare</button>
                 <button class="btn btn-secondary" onclick="clearAllCandidates()">Clear</button>
             </div>
@@ -407,7 +410,7 @@
         let dailyRankingChart, totalRankingChart, comparisonChart;
 
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             loadDailyRankingChart();
             loadTotalRankingChart();
             loadDefaultComparison();
@@ -416,20 +419,20 @@
 
         function setupEventListeners() {
             // Search input
-            document.getElementById('searchInput').addEventListener('input', function(e) {
+            document.getElementById('searchInput').addEventListener('input', function (e) {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => searchProducts(e.target.value), 300);
             });
 
             // Metric chips
             document.querySelectorAll('.metric-chip').forEach(chip => {
-                chip.addEventListener('click', function() {
+                chip.addEventListener('click', function () {
                     this.classList.toggle('active');
                 });
             });
 
             // Click outside to hide results
-            document.addEventListener('click', function(e) {
+            document.addEventListener('click', function (e) {
                 if (!e.target.closest('.search-container')) {
                     hideSearchResults();
                 }
@@ -441,7 +444,7 @@
             try {
                 const response = await fetch(`${API_BASE}/rankings/daily-sales?limit=10&days=7`);
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     renderDailyRankingChart(data.chart_data);
                 }
@@ -452,11 +455,49 @@
 
         function renderDailyRankingChart(chartData) {
             const ctx = document.getElementById('dailyRankingChart').getContext('2d');
-            
+
+            // Define aesthetic gradients
+            const gradients = [
+                ['#667eea', '#764ba2'], // Deep Purple
+                ['#FF9A9E', '#FECFEF'], // Soft Pink
+                ['#4facfe', '#00f2fe'], // Bright Blue
+                ['#43e97b', '#38f9d7'], // Fresh Green
+                ['#fa709a', '#fee140'], // Sunset Orange
+                ['#a18cd1', '#fbc2eb'], // Lavender
+                ['#fcb69f', '#ffecd2'], // Peach
+                ['#84fab0', '#8fd3f4']  // Aqua
+            ];
+
+            // Apply gradients and styling to datasets
+            chartData.datasets.forEach((dataset, index) => {
+                const gradientPair = gradients[index % gradients.length];
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400); // Vertical gradient
+                gradient.addColorStop(0, gradientPair[0]);
+                gradient.addColorStop(1, gradientPair[1]);
+
+                dataset.borderColor = gradient;
+                // Add a very light fill
+                const fillGradient = ctx.createLinearGradient(0, 0, 0, 400);
+                fillGradient.addColorStop(0, gradientPair[0] + '40'); // 25% opacity
+                fillGradient.addColorStop(1, '#ffffff00'); // 0% opacity
+
+                dataset.backgroundColor = fillGradient;
+                dataset.fill = true;
+
+                // Enhanced styling
+                dataset.tension = 0.4; // Smooth curves
+                dataset.pointBackgroundColor = '#fff';
+                dataset.pointBorderColor = gradientPair[0];
+                dataset.pointBorderWidth = 2;
+                dataset.pointRadius = 4;
+                dataset.pointHoverRadius = 6;
+                dataset.borderWidth = 3;
+            });
+
             if (dailyRankingChart) {
                 dailyRankingChart.destroy();
             }
-            
+
             dailyRankingChart = new Chart(ctx, {
                 type: 'line',
                 data: chartData,
@@ -467,11 +508,33 @@
                         legend: {
                             display: true,
                             position: 'top',
+                            align: 'end',
                             labels: {
                                 usePointStyle: true,
-                                padding: 10,
+                                padding: 20,
+                                boxWidth: 10,
                                 font: {
-                                    size: 11
+                                    size: 11,
+                                    family: "'Inter', sans-serif"
+                                }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            titleColor: '#2d3748',
+                            bodyColor: '#4a5568',
+                            borderColor: '#e2e8f0',
+                            borderWidth: 1,
+                            padding: 10,
+                            boxPadding: 4,
+                            usePointStyle: true,
+                            callbacks: {
+                                labelColor: function (context) {
+                                    const gradientPair = gradients[context.datasetIndex % gradients.length];
+                                    return {
+                                        borderColor: gradientPair[0],
+                                        backgroundColor: gradientPair[0]
+                                    };
                                 }
                             }
                         }
@@ -480,29 +543,47 @@
                         y: {
                             beginAtZero: true,
                             grid: {
-                                color: '#f1f5f9'
+                                color: '#f1f5f9',
+                                borderDash: [5, 5]
                             },
                             title: {
-                                display: true,
-                                text: 'Daily Sales'
+                                display: false,
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                },
+                                color: '#64748b'
+                            },
+                            border: {
+                                display: false
                             }
                         },
                         x: {
                             grid: {
-                                color: '#f1f5f9'
-                            },
-                            title: {
-                                display: true,
-                                text: 'Date'
+                                display: false
                             },
                             ticks: {
+                                font: {
+                                    family: "'Inter', sans-serif"
+                                },
+                                color: '#64748b',
                                 maxRotation: 45
+                            },
+                            border: {
+                                display: false
                             }
                         }
                     },
                     interaction: {
                         intersect: false,
                         mode: 'index'
+                    },
+                    elements: {
+                        line: {
+                            joinStyle: 'round',
+                            capStyle: 'round'
+                        }
                     }
                 }
             });
@@ -513,7 +594,7 @@
             try {
                 const response = await fetch(`${API_BASE}/rankings/total-sales?limit=10`);
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     renderTotalRankingChart(data.chart_data);
                 }
@@ -524,11 +605,11 @@
 
         function renderTotalRankingChart(chartData) {
             const ctx = document.getElementById('totalRankingChart').getContext('2d');
-            
+
             if (totalRankingChart) {
                 totalRankingChart.destroy();
             }
-            
+
             totalRankingChart = new Chart(ctx, {
                 type: 'bar',
                 data: chartData,
@@ -570,7 +651,7 @@
             try {
                 const response = await fetch(`${API_BASE}/products/search?q=${encodeURIComponent(query)}&limit=10`);
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     displaySearchResults(data.products);
                 }
@@ -582,24 +663,24 @@
         function displaySearchResults(products) {
             const resultsDiv = document.getElementById('searchResults');
             resultsDiv.innerHTML = '';
-            
+
             products.forEach(product => {
                 const item = document.createElement('div');
                 item.className = 'search-result-item';
-                
+
                 const salesInfo = product.total_sales ? `Total: ${product.total_sales}` : '';
                 const dateInfo = product.latest_date ? `Latest: ${product.latest_date}` : '';
                 const infoText = [salesInfo, dateInfo].filter(Boolean).join(' | ');
-                
+
                 item.innerHTML = `
                     <div class="search-result-name">${product.name}</div>
                     <div class="search-result-info">${infoText}</div>
                 `;
-                
+
                 item.addEventListener('click', () => addCandidate(product));
                 resultsDiv.appendChild(item);
             });
-            
+
             resultsDiv.style.display = 'block';
         }
 
@@ -613,12 +694,12 @@
                 showStatus('Product already selected', 'warning');
                 return;
             }
-            
+
             if (candidates.length >= 5) {
                 showStatus('Maximum 5 products allowed', 'warning');
                 return;
             }
-            
+
             candidates.push(product);
             updateCandidateSlots();
             hideSearchResults();
@@ -637,15 +718,15 @@
 
         function updateCandidateSlots() {
             const slots = document.querySelectorAll('.candidate-slot');
-            
+
             slots.forEach((slot, index) => {
                 const removeBtn = slot.querySelector('.candidate-remove');
                 if (removeBtn) removeBtn.remove();
-                
+
                 if (candidates[index]) {
                     slot.className = 'candidate-slot filled';
                     slot.textContent = candidates[index].name;
-                    
+
                     const removeButton = document.createElement('button');
                     removeButton.className = 'candidate-remove';
                     removeButton.innerHTML = '×';
@@ -670,10 +751,10 @@
 
             const days = parseInt(document.getElementById('daysInput').value) || 30;
             const alignFirstDate = document.getElementById('alignFirstDate').checked;
-            
+
             const selectedMetrics = Array.from(document.querySelectorAll('.metric-chip.active'))
                 .map(chip => chip.dataset.metric);
-            
+
             if (selectedMetrics.length === 0) {
                 showStatus('Please select at least one metric', 'error');
                 return;
@@ -694,7 +775,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     renderComparisonChart(data.chart_data);
                     showStatus('Comparison loaded successfully', 'success');
@@ -708,11 +789,11 @@
 
         function renderComparisonChart(chartData) {
             const ctx = document.getElementById('comparisonChart').getContext('2d');
-            
+
             if (comparisonChart) {
                 comparisonChart.destroy();
             }
-            
+
             comparisonChart = new Chart(ctx, {
                 type: 'line',
                 data: chartData,
@@ -769,21 +850,21 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.status === 'success') {
                     renderComparisonChart(data.chart_data);
-                    
+
                     // 预填充候选槽位显示默认选择的产品
                     candidates = [
                         { name: 'Xiaomi 15' },
                         { name: 'Xiaomi 14' }
                     ];
                     updateCandidateSlots();
-                    
+
                     // 设置默认控制项
                     document.getElementById('daysInput').value = 30;
                     document.getElementById('alignFirstDate').checked = true;
-                    
+
                     // 设置默认指标选择
                     document.querySelectorAll('.metric-chip').forEach(chip => {
                         chip.classList.remove('active');
@@ -802,11 +883,12 @@
             status.textContent = message;
             status.className = `status ${type}`;
             status.style.display = 'block';
-            
+
             setTimeout(() => {
                 status.style.display = 'none';
             }, 3000);
         }
     </script>
 </body>
+
 </html>
